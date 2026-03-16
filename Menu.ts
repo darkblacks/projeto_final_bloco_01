@@ -11,6 +11,7 @@ import {
   linha
 } from "./comandtext";
 import { ProdutoController } from "./controller/ProdutoController";
+import { Produto } from "./model/Produto";
 import { Livro } from "./model/Livro";
 import { ProdutoEscritorio } from "./model/ProdutoEscritorio";
 import { Eletronico } from "./model/Eletronico";
@@ -46,11 +47,11 @@ let gastoTotal: number = 0;
    FUNÇÕES AUXILIARES
 ========================= */
 
-async function aguardarEnter(): Promise<void> {
-  await leia.question(amarelo("\nPressione ENTER para continuar... "));
-}
+const aguardarEnter = async (): Promise<void> => {
+  await leia.question(amarelo("\n⏎ Pressione ENTER para continuar... "));
+};
 
-async function lerNumero(mensagem: string): Promise<number> {
+const lerNumero = async (mensagem: string): Promise<number> => {
   const valor = Number(await leia.question(azul(mensagem)));
 
   if (isNaN(valor)) {
@@ -58,9 +59,9 @@ async function lerNumero(mensagem: string): Promise<number> {
   }
 
   return valor;
-}
+};
 
-async function lerTexto(mensagem: string): Promise<string> {
+const lerTexto = async (mensagem: string): Promise<string> => {
   const texto = (await leia.question(azul(mensagem))).trim();
 
   if (texto === "") {
@@ -68,21 +69,28 @@ async function lerTexto(mensagem: string): Promise<string> {
   }
 
   return texto;
-}
+};
 
-async function perguntarSimOuNao(mensagem: string): Promise<string> {
+const perguntarSimOuNao = async (mensagem: string): Promise<string> => {
   let resposta = "";
 
   do {
     resposta = (await leia.question(amarelo(mensagem))).trim().toUpperCase();
 
     if (resposta !== "S" && resposta !== "N") {
-      console.log(vermelho("\nDigite apenas S para sim ou N para não."));
+      console.log(vermelho("\n❌ Digite apenas S para sim ou N para não."));
     }
   } while (resposta !== "S" && resposta !== "N");
 
   return resposta;
-}
+};
+
+const obterTipoProduto = (produto: Produto): string => {
+  if (produto instanceof Livro) return "Livro";
+  if (produto instanceof ProdutoEscritorio) return "Produto de Escritório";
+  if (produto instanceof Eletronico) return "Eletrônico";
+  return "Desconhecido";
+};
 
 /* =========================
    TELA INICIAL
@@ -90,13 +98,13 @@ async function perguntarSimOuNao(mensagem: string): Promise<string> {
 
 function telaBoasVindas(): void {
   cabecalho("livrariatech.com", "Livros, escritório e tecnologia em um só lugar");
-  console.log(branco("Bem-vinda ao terminal da livrariatech.com."));
-  console.log(branco("Aqui conhecimento, produtividade e tecnologia andam juntos."));
+  console.log(branco("👋 Bem-vinda ao terminal da livrariatech.com."));
+  console.log(branco("📚 Aqui conhecimento, produtividade e tecnologia andam juntos."));
   console.log("");
-  console.log(verde("Destaques da loja:"));
-  console.log(branco("- Livros para estudo, carreira e lazer"));
-  console.log(branco("- Itens de escritório para organizar sua rotina"));
-  console.log(branco("- Eletrônicos para turbinar sua produtividade"));
+  console.log(verde("✨ Destaques da loja:"));
+  console.log(branco("📖 Livros para estudo, carreira e lazer"));
+  console.log(branco("📝 Itens de escritório para organizar sua rotina"));
+  console.log(branco("💻 Eletrônicos para turbinar sua produtividade"));
   pausaVisual();
   console.log(branco("01 - Entrar como Usuário"));
   console.log(branco("02 - Entrar como Administrador"));
@@ -119,39 +127,85 @@ function menuUsuario(): void {
   linha();
 }
 
-function exibirCatalogo(): void {
-  cabecalho("CATÁLOGO", "Produtos disponíveis na livrariatech.com");
+function menuFiltroCatalogo(): void {
+  cabecalho("FILTRO DO CATÁLOGO", "Escolha o tipo de produto que deseja visualizar");
+  console.log(branco("01 - Todos os produtos"));
+  console.log(branco("02 - Apenas Livros"));
+  console.log(branco("03 - Apenas Produtos de Escritório"));
+  console.log(branco("04 - Apenas Eletrônicos"));
+  console.log(amarelo("09 - Voltar"));
+  linha();
+}
+
+async function exibirCatalogo(): Promise<void> {
+  menuFiltroCatalogo();
+  const opcaoFiltro = await leia.question(azul("Escolha uma opção de filtro: "));
 
   const produtos = produtoController.getProdutos();
 
   if (produtos.length === 0) {
-    console.log(amarelo("\nNenhum produto cadastrado no momento."));
+    cabecalho("CATÁLOGO", "Produtos disponíveis na livrariatech.com");
+    console.log(amarelo("\n⚠️ Nenhum produto cadastrado no momento."));
     return;
   }
 
-  for (const produto of produtos) {
-    produto.visualizar();
+  let produtosFiltrados = produtos;
+
+  switch (opcaoFiltro) {
+    case "01":
+      produtosFiltrados = produtos;
+      break;
+    case "02":
+      produtosFiltrados = produtos.filter((produto) => produto instanceof Livro);
+      break;
+    case "03":
+      produtosFiltrados = produtos.filter((produto) => produto instanceof ProdutoEscritorio);
+      break;
+    case "04":
+      produtosFiltrados = produtos.filter((produto) => produto instanceof Eletronico);
+      break;
+    case "09":
+      console.log(amarelo("\n↩️ Voltando ao menu do usuário..."));
+      return;
+    default:
+      console.log(vermelho("\n❌ Opção de filtro inválida."));
+      return;
   }
+
+  cabecalho("CATÁLOGO", "Produtos disponíveis na livrariatech.com");
+
+  if (produtosFiltrados.length === 0) {
+    console.log(amarelo("\n⚠️ Nenhum produto encontrado nesse filtro."));
+    return;
+  }
+
+  console.log(verde(`\n🔎 ${produtosFiltrados.length} produto(s) encontrado(s):\n`));
+
+  produtosFiltrados.forEach((produto) => {
+    console.log(branco(`🗂️ Tipo: ${obterTipoProduto(produto)}`));
+    produto.visualizar();
+    pausaVisual();
+  });
 }
 
 function exibirComprasRealizadas(): void {
   cabecalho("PRODUTOS COMPRADOS", "Histórico de compras do usuário");
 
   if (historicoCompras.length === 0) {
-    console.log(amarelo("\nNenhuma compra foi realizada até o momento."));
+    console.log(amarelo("\n⚠️ Nenhuma compra foi realizada até o momento."));
     return;
   }
 
-  for (const compra of historicoCompras) {
-    console.log(branco(`ID do Produto: ${compra.idProduto}`));
-    console.log(branco(`Nome: ${compra.nomeProduto}`));
-    console.log(branco(`Quantidade: ${compra.quantidade}`));
-    console.log(branco(`Preço Unitário: R$ ${compra.precoUnitario.toFixed(2)}`));
-    console.log(branco(`Subtotal: R$ ${compra.subtotal.toFixed(2)}`));
+  historicoCompras.forEach((compra) => {
+    console.log(branco(`🆔 ID do Produto: ${compra.idProduto}`));
+    console.log(branco(`🛍️ Nome: ${compra.nomeProduto}`));
+    console.log(branco(`📦 Quantidade: ${compra.quantidade}`));
+    console.log(branco(`💲 Preço Unitário: R$ ${compra.precoUnitario.toFixed(2)}`));
+    console.log(branco(`💰 Subtotal: R$ ${compra.subtotal.toFixed(2)}`));
     pausaVisual();
-  }
+  });
 
-  console.log(verde(`\nGasto total acumulado: R$ ${gastoTotal.toFixed(2)}`));
+  console.log(verde(`\n💵 Gasto total acumulado: R$ ${gastoTotal.toFixed(2)}`));
 }
 
 async function comprarProduto(): Promise<void> {
@@ -176,13 +230,13 @@ async function comprarProduto(): Promise<void> {
 
     gastoTotal += subtotal;
 
-    console.log(verde("\nCompra concluída com sucesso."));
-    console.log(branco(`Produto: ${produto.getNome()}`));
-    console.log(branco(`Quantidade: ${quantidade}`));
-    console.log(branco(`Subtotal da compra: R$ ${subtotal.toFixed(2)}`));
-    console.log(verde(`Gasto total acumulado: R$ ${gastoTotal.toFixed(2)}`));
+    console.log(verde("\n✅ Compra concluída com sucesso."));
+    console.log(branco(`🛍️ Produto: ${produto.getNome()}`));
+    console.log(branco(`📦 Quantidade: ${quantidade}`));
+    console.log(branco(`💰 Subtotal da compra: R$ ${subtotal.toFixed(2)}`));
+    console.log(verde(`💵 Gasto total acumulado: R$ ${gastoTotal.toFixed(2)}`));
   } catch (error: any) {
-    console.log(vermelho(`\nErro: ${error.message}`));
+    console.log(vermelho(`\n❌ Erro: ${error.message}`));
   }
 
   await aguardarEnter();
@@ -195,10 +249,11 @@ async function buscarProdutoPorId(): Promise<void> {
     const id = await lerNumero("Digite o ID do produto: ");
     const produto = produtoController.buscarObrigatorio(id);
 
-    console.log(verde("\nProduto localizado com sucesso."));
+    console.log(verde("\n✅ Produto localizado com sucesso."));
+    console.log(branco(`🗂️ Tipo: ${obterTipoProduto(produto)}`));
     produto.visualizar();
   } catch (error: any) {
-    console.log(vermelho(`\nErro: ${error.message}`));
+    console.log(vermelho(`\n❌ Erro: ${error.message}`));
   }
 
   await aguardarEnter();
@@ -212,7 +267,7 @@ async function areaUsuario(): Promise<void> {
     try {
       switch (opcaoUsuario) {
         case "01":
-          exibirCatalogo();
+          await exibirCatalogo();
           await aguardarEnter();
           break;
         case "02":
@@ -226,17 +281,17 @@ async function areaUsuario(): Promise<void> {
           await aguardarEnter();
           break;
         case "09":
-          console.log(amarelo("\nVoltando ao menu principal..."));
+          console.log(amarelo("\n↩️ Voltando ao menu principal..."));
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch {
-      console.log(vermelho("\nErro inesperado na área do usuário."));
+      console.log(vermelho("\n❌ Erro inesperado na área do usuário."));
       await aguardarEnter();
     }
   } while (opcaoUsuario !== "09" && opcaoUsuario !== "00");
@@ -287,7 +342,7 @@ async function adicionarProduto(): Promise<void> {
           );
 
           produtoController.cadastrar(livro);
-          console.log(verde("\nLivro cadastrado com sucesso."));
+          console.log(verde("\n✅ Livro cadastrado com sucesso."));
           break;
         }
 
@@ -307,7 +362,7 @@ async function adicionarProduto(): Promise<void> {
           );
 
           produtoController.cadastrar(produtoEscritorio);
-          console.log(verde("\nProduto de Escritório cadastrado com sucesso."));
+          console.log(verde("\n✅ Produto de Escritório cadastrado com sucesso."));
           break;
         }
 
@@ -325,7 +380,7 @@ async function adicionarProduto(): Promise<void> {
           );
 
           produtoController.cadastrar(eletronico);
-          console.log(verde("\nEletrônico cadastrado com sucesso."));
+          console.log(verde("\n✅ Eletrônico cadastrado com sucesso."));
           break;
         }
 
@@ -333,10 +388,10 @@ async function adicionarProduto(): Promise<void> {
           throw new Error("Tipo de produto inválido.");
       }
     } catch (error: any) {
-      console.log(vermelho(`\nErro: ${error.message}`));
+      console.log(vermelho(`\n❌ Erro: ${error.message}`));
     }
 
-    desejaContinuar = await perguntarSimOuNao("\nQuer adicionar um novo produto? (S/N): ");
+    desejaContinuar = await perguntarSimOuNao("\n➕ Quer adicionar um novo produto? (S/N): ");
   } while (desejaContinuar === "S");
 
   await aguardarEnter();
@@ -349,9 +404,9 @@ async function removerProduto(): Promise<void> {
     const id = await lerNumero("Digite o ID do produto que deseja remover: ");
     produtoController.deletar(id);
 
-    console.log(verde("\nProduto removido com sucesso."));
+    console.log(verde("\n✅ Produto removido com sucesso."));
   } catch (error: any) {
-    console.log(vermelho(`\nErro: ${error.message}`));
+    console.log(vermelho(`\n❌ Erro: ${error.message}`));
   }
 
   await aguardarEnter();
@@ -427,10 +482,10 @@ async function selecionarProdutoParaEdicao(): Promise<void> {
 
     idProdutoEdicao = id;
 
-    console.log(verde("\nProduto selecionado com sucesso."));
+    console.log(verde("\n✅ Produto selecionado com sucesso."));
     produto.visualizar();
   } catch (error: any) {
-    console.log(vermelho(`\nErro: ${error.message}`));
+    console.log(vermelho(`\n❌ Erro: ${error.message}`));
     idProdutoEdicao = 0;
   }
 
@@ -450,7 +505,7 @@ async function fluxoEditarBase(): Promise<void> {
           const novoNome = await lerTexto("Novo nome: ");
           produto.setNome(novoNome);
           produtoController.atualizar(produto);
-          console.log(verde("\nNome atualizado com sucesso."));
+          console.log(verde("\n✅ Nome atualizado com sucesso."));
           await aguardarEnter();
           break;
         }
@@ -458,7 +513,7 @@ async function fluxoEditarBase(): Promise<void> {
           const novoPreco = await lerNumero("Novo preço: ");
           produto.setPreco(novoPreco);
           produtoController.atualizar(produto);
-          console.log(verde("\nPreço atualizado com sucesso."));
+          console.log(verde("\n✅ Preço atualizado com sucesso."));
           await aguardarEnter();
           break;
         }
@@ -466,21 +521,21 @@ async function fluxoEditarBase(): Promise<void> {
           const novoEstoque = await lerNumero("Novo estoque: ");
           produto.setEstoque(novoEstoque);
           produtoController.atualizar(produto);
-          console.log(verde("\nEstoque atualizado com sucesso."));
+          console.log(verde("\n✅ Estoque atualizado com sucesso."));
           await aguardarEnter();
           break;
         }
         case "09":
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch (error: any) {
-      console.log(vermelho(`\nErro: ${error.message}`));
+      console.log(vermelho(`\n❌ Erro: ${error.message}`));
       await aguardarEnter();
     }
   } while (opcaoEditarBase !== "09" && opcaoEditarBase !== "00");
@@ -505,7 +560,7 @@ async function fluxoConteudoLivro(): Promise<void> {
           const autor = await lerTexto("Novo autor: ");
           produto.setAutor(autor);
           produtoController.atualizar(produto);
-          console.log(verde("\nAutor atualizado com sucesso."));
+          console.log(verde("\n✅ Autor atualizado com sucesso."));
           await aguardarEnter();
           break;
         }
@@ -513,21 +568,21 @@ async function fluxoConteudoLivro(): Promise<void> {
           const genero = await lerTexto("Novo gênero: ");
           produto.setGenero(genero);
           produtoController.atualizar(produto);
-          console.log(verde("\nGênero atualizado com sucesso."));
+          console.log(verde("\n✅ Gênero atualizado com sucesso."));
           await aguardarEnter();
           break;
         }
         case "09":
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch (error: any) {
-      console.log(vermelho(`\nErro: ${error.message}`));
+      console.log(vermelho(`\n❌ Erro: ${error.message}`));
       await aguardarEnter();
     }
   } while (opcao !== "09" && opcao !== "00");
@@ -552,7 +607,7 @@ async function fluxoConteudoEscritorio(): Promise<void> {
           const marca = await lerTexto("Nova marca: ");
           produto.setMarca(marca);
           produtoController.atualizar(produto);
-          console.log(verde("\nMarca atualizada com sucesso."));
+          console.log(verde("\n✅ Marca atualizada com sucesso."));
           await aguardarEnter();
           break;
         }
@@ -560,7 +615,7 @@ async function fluxoConteudoEscritorio(): Promise<void> {
           const uso = await lerTexto("Novo uso: ");
           produto.setUso(uso);
           produtoController.atualizar(produto);
-          console.log(verde("\nUso atualizado com sucesso."));
+          console.log(verde("\n✅ Uso atualizado com sucesso."));
           await aguardarEnter();
           break;
         }
@@ -568,21 +623,21 @@ async function fluxoConteudoEscritorio(): Promise<void> {
           const descricao = await lerTexto("Nova descrição: ");
           produto.setDescricao(descricao);
           produtoController.atualizar(produto);
-          console.log(verde("\nDescrição atualizada com sucesso."));
+          console.log(verde("\n✅ Descrição atualizada com sucesso."));
           await aguardarEnter();
           break;
         }
         case "09":
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch (error: any) {
-      console.log(vermelho(`\nErro: ${error.message}`));
+      console.log(vermelho(`\n❌ Erro: ${error.message}`));
       await aguardarEnter();
     }
   } while (opcao !== "09" && opcao !== "00");
@@ -607,7 +662,7 @@ async function fluxoConteudoEletronico(): Promise<void> {
           const marca = await lerTexto("Nova marca: ");
           produto.setMarca(marca);
           produtoController.atualizar(produto);
-          console.log(verde("\nMarca atualizada com sucesso."));
+          console.log(verde("\n✅ Marca atualizada com sucesso."));
           await aguardarEnter();
           break;
         }
@@ -615,21 +670,21 @@ async function fluxoConteudoEletronico(): Promise<void> {
           const uso = await lerTexto("Novo uso: ");
           produto.setUso(uso);
           produtoController.atualizar(produto);
-          console.log(verde("\nUso atualizado com sucesso."));
+          console.log(verde("\n✅ Uso atualizado com sucesso."));
           await aguardarEnter();
           break;
         }
         case "09":
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch (error: any) {
-      console.log(vermelho(`\nErro: ${error.message}`));
+      console.log(vermelho(`\n❌ Erro: ${error.message}`));
       await aguardarEnter();
     }
   } while (opcao !== "09" && opcao !== "00");
@@ -654,14 +709,14 @@ async function fluxoEditarConteudo(): Promise<void> {
         case "09":
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch {
-      console.log(vermelho("\nErro ao editar conteúdo do produto."));
+      console.log(vermelho("\n❌ Erro ao editar conteúdo do produto."));
       await aguardarEnter();
     }
   } while (opcaoEditarConteudo !== "09" && opcaoEditarConteudo !== "00");
@@ -687,17 +742,17 @@ async function editarProduto(): Promise<void> {
           await fluxoEditarConteudo();
           break;
         case "09":
-          console.log(amarelo("\nVoltando ao menu do administrador..."));
+          console.log(amarelo("\n↩️ Voltando ao menu do administrador..."));
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch {
-      console.log(vermelho("\nErro durante a edição do produto."));
+      console.log(vermelho("\n❌ Erro durante a edição do produto."));
       await aguardarEnter();
     }
   } while (opcaoEditar !== "09" && opcaoEditar !== "00");
@@ -720,17 +775,17 @@ async function areaAdministrador(): Promise<void> {
           await editarProduto();
           break;
         case "09":
-          console.log(amarelo("\nVoltando ao menu principal..."));
+          console.log(amarelo("\n↩️ Voltando ao menu principal..."));
           break;
         case "00":
-          console.log(vermelho("\nSistema encerrado."));
+          console.log(vermelho("\n🛑 Sistema encerrado."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida."));
+          console.log(vermelho("\n❌ Opção inválida."));
           await aguardarEnter();
       }
     } catch {
-      console.log(vermelho("\nErro inesperado na área do administrador."));
+      console.log(vermelho("\n❌ Erro inesperado na área do administrador."));
       await aguardarEnter();
     }
   } while (opcaoAdm !== "09" && opcaoAdm !== "00");
@@ -755,15 +810,15 @@ async function main(): Promise<void> {
           break;
         case "00":
           cabecalho("livrariatech.com", "Sessão encerrada");
-          console.log(verde("Obrigada por utilizar nosso terminal."));
-          console.log(branco("Até a próxima leitura, compra ou upgrade de produtividade."));
+          console.log(verde("✅ Obrigada por utilizar nosso terminal."));
+          console.log(branco("📚 Até a próxima leitura, compra ou upgrade de produtividade."));
           break;
         default:
-          console.log(vermelho("\nOpção inválida. Digite 01, 02 ou 00."));
+          console.log(vermelho("\n❌ Opção inválida. Digite 01, 02 ou 00."));
           await aguardarEnter();
       }
     } catch {
-      console.log(vermelho("\nErro inesperado no menu principal."));
+      console.log(vermelho("\n❌ Erro inesperado no menu principal."));
       await aguardarEnter();
     }
   } while (opcaoPrincipal !== "00");
