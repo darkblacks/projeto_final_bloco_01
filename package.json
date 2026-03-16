@@ -1,0 +1,13 @@
+{
+  "name": "projeto_final_bloco_01",
+  "version": "1.0.0",
+  "main": "Menu.ts",
+  "scripts": {
+    "dev": "ts-node Menu.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.0"
+  }
+}
